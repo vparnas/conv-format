@@ -1,0 +1,42 @@
+#!/usr/bin/perl
+
+# (c) 2020 Vitaly Parnas <vp330@parnas.me>
+
+# Pass a config with -c <config>
+# See the sample *.cfg for examples
+#   WARNING: config files are evaluated as Perl code verbatim. 
+# Input passed via STDIN or file argument
+# Outputs to STDOUT
+
+use strict;
+use warnings;
+use 5.010;
+use POSIX qw(strftime);
+
+my ($INPUT_ITEM_HEADER_REGEX, $INPUT_END_REGEX) = ("", "");
+my ($HEADER, $ITEM_HEADER, $ITEM_FOOTER, $FOOTER) = ("", "", "", "");
+
+my $cfg = "";
+if ($_ = shift) {
+    (/^(-c|--config)/) and $cfg = shift or unshift(@ARGV, $_);
+}
+if ($cfg) {
+    (-e "$cfg") or die "Could not open config '$cfg' $!\n";
+    eval `cat $cfg`;
+}
+
+print $HEADER;
+my $in_item = 0;
+while (<>) {
+    chomp;
+    if (/$INPUT_ITEM_HEADER_REGEX/im) {
+        $in_item and print $ITEM_FOOTER;
+        $in_item = 1;
+        eval "print \"$ITEM_HEADER\"";
+    } else {
+        $INPUT_END_REGEX and (/$INPUT_END_REGEX/im) and last;
+        ($in_item) and say;
+    }
+}
+$in_item and print $ITEM_FOOTER;
+print $FOOTER;
